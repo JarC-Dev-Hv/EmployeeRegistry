@@ -14,6 +14,7 @@ namespace EmployeeRegistry.API.Services.EmployeeServices
         private readonly IMapper _mapper;
         private readonly IValidator<EmployeeInsertDto> _employeeInsertValidator;
         private readonly IValidator<EmployeeUpdateDto> _employeeUpdateValidator;
+        private readonly IValidator<EmployeeSearchDto> _employeeSearchValidator;
         private readonly ILogger<EmployeeService> _logger;
 
         public EmployeeService(
@@ -21,12 +22,14 @@ namespace EmployeeRegistry.API.Services.EmployeeServices
             IMapper mapper,
             IValidator<EmployeeInsertDto> employeeInsertValidator,
             IValidator<EmployeeUpdateDto> employeeUpdateValidator,
+            IValidator<EmployeeSearchDto> employeeSearchValidator,
             ILogger<EmployeeService> logger)
         {
             _employeeRepository = employeeRepository;
             _mapper = mapper;
             _employeeInsertValidator = employeeInsertValidator;
             _employeeUpdateValidator = employeeUpdateValidator;
+            _employeeSearchValidator = employeeSearchValidator;
             _logger = logger;
         }
 
@@ -141,8 +144,23 @@ namespace EmployeeRegistry.API.Services.EmployeeServices
 
         public async Task<IEnumerable<EmployeeDto>> Search(EmployeeSearchDto searchParams)
         {
-            var employees = await _employeeRepository.Search(searchParams);
-            return employees.Select(e => _mapper.Map<EmployeeDto>(e));
+            ValidationResult result = await _employeeSearchValidator.ValidateAsync(searchParams);
+
+            if (!result.IsValid)
+            {
+                throw new ValidationException(result.Errors);
+            }
+
+            try
+            {
+                var employees = await _employeeRepository.Search(searchParams);
+                return employees.Select(e => _mapper.Map<EmployeeDto>(e));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving employees.");
+                throw new ServiceException("An error occurred while retrieving employees.", ex);
+            }            
         }
 
     }

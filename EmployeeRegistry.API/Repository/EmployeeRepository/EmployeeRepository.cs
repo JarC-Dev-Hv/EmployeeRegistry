@@ -51,20 +51,20 @@ namespace EmployeeRegistry.API.Repository.EmployeeRepository
                 query = query.Where(e => e.LastName.Contains(searchParams.LastName));
             }
 
-            if (searchParams.BirthDate.HasValue)
-            {
-                query = query.Where(e => e.BirthDate == searchParams.BirthDate.Value);
-            }
+            //if (searchParams.BirthDate.HasValue)
+            //{
+            //    query = query.Where(e => e.BirthDate == searchParams.BirthDate.Value);
+            //}
 
-            if (searchParams.MinSalary.HasValue)
-            {
-                query = query.Where(e => e.Salary >= searchParams.MinSalary.Value);
-            }
+            //if (searchParams.MinSalary.HasValue)
+            //{
+            //    query = query.Where(e => e.Salary >= searchParams.MinSalary.Value);
+            //}
 
-            if (searchParams.MaxSalary.HasValue)
-            {
-                query = query.Where(e => e.Salary <= searchParams.MaxSalary.Value);
-            }
+            //if (searchParams.MaxSalary.HasValue)
+            //{
+            //    query = query.Where(e => e.Salary <= searchParams.MaxSalary.Value);
+            //}
 
             return await query
                 .Skip((searchParams.PageNumber - 1) * searchParams.PageSize)
