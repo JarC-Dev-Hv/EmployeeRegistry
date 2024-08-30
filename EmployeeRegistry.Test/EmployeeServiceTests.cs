@@ -1,17 +1,14 @@
-﻿using Xunit;
-using Moq;
+﻿using Moq;
+using Xunit;
+using FluentAssertions;
 using EmployeeRegistry.API.Services.EmployeeServices;
 using EmployeeRegistry.API.Repository.EmployeeRepository;
 using EmployeeRegistry.API.Models;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using AutoMapper;
+using EmployeeRegistry.API.DTOs;
 using FluentValidation;
 using FluentValidation.Results;
-using EmployeeRegistry.API.DTOs;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System;
+using Microsoft.Extensions.Logging;
+using AutoMapper;
 
 namespace EmployeeRegistry.Test
 {
@@ -103,10 +100,13 @@ namespace EmployeeRegistry.Test
             // Arrange
             var employeeDto = new EmployeeInsertDto { FirstName = "John", LastName = "Doe", Salary = 1000 };
             var employee = new Employee { FirstName = "John", LastName = "Doe", Salary = 1000 };
+            var createdEmployeeDto = new EmployeeDto { FirstName = "John", LastName = "Doe" };
 
             _employeeInsertValidatorMock.Setup(v => v.ValidateAsync(employeeDto, default)).ReturnsAsync(new ValidationResult());
             _mapperMock.Setup(m => m.Map<Employee>(employeeDto)).Returns(employee);
             _employeeRepositoryMock.Setup(repo => repo.Add(It.IsAny<Employee>())).Returns(Task.CompletedTask);
+            _employeeRepositoryMock.Setup(repo => repo.Save()).Returns(Task.CompletedTask);
+            _mapperMock.Setup(m => m.Map<EmployeeDto>(employee)).Returns(createdEmployeeDto);
 
             // Act
             var result = await _employeeService.Add(employeeDto);
@@ -118,16 +118,21 @@ namespace EmployeeRegistry.Test
             _employeeRepositoryMock.Verify(repo => repo.Add(It.IsAny<Employee>()), Times.Once);
         }
 
+
         [Fact]
         public async Task Update_ShouldReturnUpdatedEmployee_WhenEmployeeExists()
         {
             // Arrange
             var employeeUpdateDto = new EmployeeUpdateDto { FirstName = "John", LastName = "Doe", Salary = 1500 };
-            var employee = new Employee { FirstName = "John", LastName = "Doe", Salary = 1000 };
+            var employee = new Employee { Id = 1, FirstName = "John", LastName = "Doe", Salary = 1000 };
+            var updatedEmployeeDto = new EmployeeDto { FirstName = "John", LastName = "Doe", Salary = 1500 };
 
             _employeeUpdateValidatorMock.Setup(v => v.ValidateAsync(employeeUpdateDto, default)).ReturnsAsync(new ValidationResult());
-            _employeeRepositoryMock.Setup(repo => repo.GetById(It.IsAny<int>())).ReturnsAsync(employee);
+            _employeeRepositoryMock.Setup(repo => repo.GetById(1)).ReturnsAsync(employee);
             _mapperMock.Setup(m => m.Map(employeeUpdateDto, employee)).Returns(employee);
+            _employeeRepositoryMock.Setup(repo => repo.Update(employee)).Callback(() => { });
+            _employeeRepositoryMock.Setup(repo => repo.Save()).Returns(Task.CompletedTask);
+            _mapperMock.Setup(m => m.Map<EmployeeDto>(employee)).Returns(updatedEmployeeDto);
 
             // Act
             var result = await _employeeService.Update(1, employeeUpdateDto);
@@ -135,8 +140,11 @@ namespace EmployeeRegistry.Test
             // Assert
             result.Should().NotBeNull();
             result.Salary.Should().Be(1500);
-            _employeeRepositoryMock.Verify(repo => repo.Update(It.IsAny<Employee>()), Times.Once);
+            _employeeRepositoryMock.Verify(repo => repo.Update(employee), Times.Once);
         }
+
+
+
 
         [Fact]
         public async Task Update_ShouldReturnNull_WhenEmployeeDoesNotExist()
@@ -159,8 +167,10 @@ namespace EmployeeRegistry.Test
         {
             // Arrange
             var employee = new Employee { FirstName = "John", LastName = "Doe", Salary = 1000 };
+            var employeeDto = new EmployeeDto { FirstName = "John", LastName = "Doe" };
 
             _employeeRepositoryMock.Setup(repo => repo.GetById(It.IsAny<int>())).ReturnsAsync(employee);
+            _mapperMock.Setup(m => m.Map<EmployeeDto>(employee)).Returns(employeeDto);
 
             // Act
             var result = await _employeeService.Delete(1);
@@ -171,6 +181,7 @@ namespace EmployeeRegistry.Test
             result.LastName.Should().Be("Doe");
             _employeeRepositoryMock.Verify(repo => repo.Delete(It.IsAny<Employee>()), Times.Once);
         }
+
 
         [Fact]
         public async Task Delete_ShouldReturnNull_WhenEmployeeDoesNotExist()
